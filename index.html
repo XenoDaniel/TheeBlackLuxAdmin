@@ -1531,36 +1531,54 @@
     document.querySelectorAll('.auth-error, .auth-success').forEach(el => el.classList.remove('show'));
   };
 
-  window.handleLogin = async function(e) {
-    e.preventDefault();
-    const email = document.getElementById('loginEmail').value.trim();
-    const password = document.getElementById('loginPassword').value;
-    const btn = document.getElementById('loginBtn');
+// 1. Define allowed admin email list at the top of your script block
+const ALLOWED_ADMINS = [
+  "rasheedmariam15@gmail.com",
+  "xenojojo1@gmail.com" // Update/add any other admin emails here
+];
 
-    if (email !== ADMIN_EMAIL) {
-      showError('loginError', 'Access denied. Invalid admin credentials.');
-      return;
-    }
+// 2. Mark the function as 'async' so 'await' works properly
+window.handleLogin = async function(e) {
+  e.preventDefault();
 
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span>';
+  const emailInput = document.getElementById("login-email") || document.getElementById("admin-email");
+  const passwordInput = document.getElementById("login-password") || document.getElementById("admin-password");
 
-    try {
-      await signInWithEmailAndPassword(auth, email, password);
-      showToast('Welcome back!', 'success');
-    } catch (error) {
-      console.error('Login error:', error);
-      let msg = 'Login failed. Please try again.';
-      if (error.code === 'auth/user-not-found') msg = 'No account found with this email.';
-      if (error.code === 'auth/wrong-password') msg = 'Incorrect password.';
-      if (error.code === 'auth/invalid-email') msg = 'Invalid email format.';
-      if (error.code === 'auth/too-many-requests') msg = 'Too many attempts. Try again later.';
-      showError('loginError', msg);
-    } finally {
-      btn.disabled = false;
-      btn.innerHTML = '<span>Sign In</span>';
-    }
-  };
+  if (!emailInput || !passwordInput) {
+    alert("Login form fields not found.");
+    return;
+  }
+
+  const email = emailInput.value.trim().toLowerCase();
+  const password = passwordInput.value;
+
+  // Validate if the email is on the approved admin list
+  const isAuthorized = ALLOWED_ADMINS.some(admin => email.includes(admin.toLowerCase()));
+
+  if (!isAuthorized) {
+    alert("Access Denied: This email address is not authorized for admin access.");
+    return;
+  }
+
+  try {
+    // Authenticate with Firebase Auth
+    // Note: ensure 'auth' and 'signInWithEmailAndPassword' are imported from Firebase Auth
+    await firebase.auth().signInWithEmailAndPassword(email, password);
+    
+    alert("Login successful!");
+    
+    // Hide login screen / Show admin dashboard
+    const loginSection = document.getElementById("login-section");
+    const adminDashboard = document.getElementById("admin-dashboard");
+    
+    if (loginSection) loginSection.style.display = "none";
+    if (adminDashboard) adminDashboard.style.display = "block";
+
+  } catch (error) {
+    console.error("Login Error:", error);
+    alert("Login failed: " + error.message);
+  }
+};
 
   window.handleForgotPassword = async function(e) {
     e.preventDefault();
@@ -1898,6 +1916,27 @@
         opt.textContent = sub;
         subSelect.appendChild(opt);
       });
+    }
+  };
+
+  window.toggleSidebar = function() {
+    const sidebar = document.getElementById('sidebar');
+    if (!sidebar) return;
+    sidebar.classList.toggle('open');
+  };
+
+  window.handleLogout = async function() {
+    try {
+      await signOut(auth);
+      showToast('Logged out successfully', 'success');
+      const adminLayout = document.getElementById('adminLayout');
+      const loginScreen = document.getElementById('loginScreen');
+      if (adminLayout) adminLayout.style.display = 'none';
+      if (loginScreen) loginScreen.style.display = 'flex';
+      showScreen('loginScreen');
+    } catch (error) {
+      console.error('Logout error:', error);
+      showToast('Logout failed. Please try again.', 'error');
     }
   };
 
