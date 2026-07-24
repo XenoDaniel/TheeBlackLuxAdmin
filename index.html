@@ -1470,8 +1470,11 @@
   // ⚠️ CHANGE THIS TO YOUR ACTUAL ADMIN EMAILS
   // ============================================
   // These are the emails created in Firebase Authentication
-  const ADMIN_EMAILS = ['xenojojo1@gmail.com', 'Rasheedmariam15@gmail.com']
-;
+  const ALLOWED_ADMINS = [
+    "rasheedmariam15@gmail.com",
+    "xenojojo1@gmail.com"
+  ];
+  const ADMIN_EMAILS = [...ALLOWED_ADMINS];
 
   const COLLECTIONS = {
     PRODUCTS: 'products',
@@ -1534,62 +1537,43 @@
 window.handleLogin = async function(e) {
   if (e && e.preventDefault) e.preventDefault();
 
-  // 1. Smartly find inputs by type or form context (bypasses missing/mismatched IDs)
+  // Find inputs from form
   const form = e ? (e.target.tagName === 'FORM' ? e.target : e.target.closest('form')) : null;
-  
-  const emailInput = (form && form.querySelector('input[type="email"]')) || 
-                     document.querySelector('input[type="email"]') ||
-                     document.getElementById('loginEmail') || 
-                     document.getElementById('email');
-
-  const passwordInput = (form && form.querySelector('input[type="password"]')) || 
-                        document.querySelector('input[type="password"]') ||
-                        document.getElementById('loginPassword') || 
-                        document.getElementById('password');
+  const emailInput = (form && form.querySelector('input[type="email"]')) || document.querySelector('input[type="email"]');
+  const passwordInput = (form && form.querySelector('input[type="password"]')) || document.querySelector('input[type="password"]');
 
   if (!emailInput || !passwordInput) {
-    alert("Login form fields not found. Please verify input fields exist in HTML.");
+    alert("Login form fields not found.");
     return;
   }
 
   const email = emailInput.value.trim().toLowerCase();
   const password = passwordInput.value;
 
-  // 2. Approved Admin List
-  const ALLOWED_ADMINS = [
-    "rasheedmariam15@gmail.com",
-    "xenojojo1@gmail.com"
-  ];
-
+  // Check email authorization
   const isAuthorized = ALLOWED_ADMINS.some(admin => email.includes(admin.toLowerCase()));
-
   if (!isAuthorized) {
     alert("Access Denied: This email address is not authorized for admin access.");
     return;
   }
 
   try {
-    // 3. Firebase Auth sign-in
-    // If using Modular SDK (v9+): await signInWithEmailAndPassword(auth, email, password);
-    // If using Compat/v8 SDK: await firebase.auth().signInWithEmailAndPassword(email, password);
-    if (typeof auth !== 'undefined' && auth.signInWithEmailAndPassword) {
-      await auth.signInWithEmailAndPassword(email, password);
-    } else if (window.firebase && firebase.auth) {
-      await firebase.auth().signInWithEmailAndPassword(email, password);
-    } else {
-      throw new Error("Firebase Auth is not properly initialized.");
-    }
+    // Authenticate with Firebase
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    console.log("Logged in user:", userCredential.user);
 
     alert("Login successful!");
 
-    // Hide login modal/container
-    const loginScreen = document.getElementById("loginScreen");
+    // Hide login overlay / Show admin console
+    const loginScreen = document.getElementById("loginScreen") || document.getElementById("login-section");
     if (loginScreen) loginScreen.style.display = "none";
 
+    const adminDashboard = document.getElementById("adminDashboard") || document.getElementById("admin-dashboard");
+    if (adminDashboard) adminDashboard.style.display = "block";
+
   } catch (error) {
-    console.error("Login Error Code:", error.code);
-    console.error("Login Error Message:", error.message);
-    alert("Login failed: " + (error.message || error));
+    console.error("Login Error:", error);
+    alert("Login failed: " + error.message);
   }
 };
 
