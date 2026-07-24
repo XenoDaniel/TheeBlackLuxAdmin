@@ -1531,28 +1531,36 @@
     document.querySelectorAll('.auth-error, .auth-success').forEach(el => el.classList.remove('show'));
   };
 
-// 1. Define allowed admin email list at the top of your script block
-const ALLOWED_ADMINS = [
-  "rasheedmariam15@gmail.com",
-  "xenojojo1@gmail.com" // Update/add any other admin emails here
-];
-
-// 2. Mark the function as 'async' so 'await' works properly
 window.handleLogin = async function(e) {
-  e.preventDefault();
+  if (e && e.preventDefault) e.preventDefault();
 
-  const emailInput = document.getElementById("login-email") || document.getElementById("admin-email");
-  const passwordInput = document.getElementById("login-password") || document.getElementById("admin-password");
+  // 1. Smartly find inputs by type or form context (bypasses missing/mismatched IDs)
+  const form = e ? (e.target.tagName === 'FORM' ? e.target : e.target.closest('form')) : null;
+  
+  const emailInput = (form && form.querySelector('input[type="email"]')) || 
+                     document.querySelector('input[type="email"]') ||
+                     document.getElementById('loginEmail') || 
+                     document.getElementById('email');
+
+  const passwordInput = (form && form.querySelector('input[type="password"]')) || 
+                        document.querySelector('input[type="password"]') ||
+                        document.getElementById('loginPassword') || 
+                        document.getElementById('password');
 
   if (!emailInput || !passwordInput) {
-    alert("Login form fields not found.");
+    alert("Login form fields not found. Please verify input fields exist in HTML.");
     return;
   }
 
   const email = emailInput.value.trim().toLowerCase();
   const password = passwordInput.value;
 
-  // Validate if the email is on the approved admin list
+  // 2. Approved Admin List
+  const ALLOWED_ADMINS = [
+    "rasheedmariam15@gmail.com",
+    "xenojojo1@gmail.com"
+  ];
+
   const isAuthorized = ALLOWED_ADMINS.some(admin => email.includes(admin.toLowerCase()));
 
   if (!isAuthorized) {
@@ -1561,18 +1569,22 @@ window.handleLogin = async function(e) {
   }
 
   try {
-    // Authenticate with Firebase Auth
-    // Note: ensure 'auth' and 'signInWithEmailAndPassword' are imported from Firebase Auth
-    await firebase.auth().signInWithEmailAndPassword(email, password);
-    
+    // 3. Firebase Auth sign-in
+    // If using Modular SDK (v9+): await signInWithEmailAndPassword(auth, email, password);
+    // If using Compat/v8 SDK: await firebase.auth().signInWithEmailAndPassword(email, password);
+    if (typeof auth !== 'undefined' && auth.signInWithEmailAndPassword) {
+      await auth.signInWithEmailAndPassword(email, password);
+    } else if (window.firebase && firebase.auth) {
+      await firebase.auth().signInWithEmailAndPassword(email, password);
+    } else {
+      throw new Error("Firebase Auth is not properly initialized.");
+    }
+
     alert("Login successful!");
-    
-    // Hide login screen / Show admin dashboard
-    const loginSection = document.getElementById("login-section");
-    const adminDashboard = document.getElementById("admin-dashboard");
-    
-    if (loginSection) loginSection.style.display = "none";
-    if (adminDashboard) adminDashboard.style.display = "block";
+
+    // Hide login modal/container
+    const loginScreen = document.getElementById("loginScreen");
+    if (loginScreen) loginScreen.style.display = "none";
 
   } catch (error) {
     console.error("Login Error:", error);
