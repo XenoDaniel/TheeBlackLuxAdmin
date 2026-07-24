@@ -1587,8 +1587,9 @@ window.handleLogin = async function(e) {
     if (loginScreen) loginScreen.style.display = "none";
 
   } catch (error) {
-    console.error("Login Error:", error);
-    alert("Login failed: " + error.message);
+    console.error("Login Error Code:", error.code);
+    console.error("Login Error Message:", error.message);
+    alert("Login failed: " + (error.message || error));
   }
 };
 
@@ -1957,15 +1958,3 @@ window.handleLogin = async function(e) {
 </body>
 </html>
 
-
-              <script>
-                              await emailjs.send('your_service_id', 'your_template_id', {
-  to_email: email,
-  otp: otp
-});
-
-
-              </script>
-                        </body>
-                        </html>
-                    
